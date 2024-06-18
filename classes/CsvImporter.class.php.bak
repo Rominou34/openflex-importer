@@ -1,0 +1,84 @@
+<?php
+
+namespace OpenFlexImporter;
+
+class CsvImporter
+{
+    private $fp;
+    private $parse_header;
+    private $header;
+    private $delimiter;
+    private $length;
+    //--------------------------------------------------------------------
+    function __construct($file_name, $parse_header=false, $length=8000)
+    {
+        $this->fp = fopen($file_name, "r");
+        $this->parse_header = $parse_header;
+        $this->delimiter = OPENFLEX_CSV_DELIMITER;
+        $this->length = $length;
+
+        // If we don't parse the header, we get its structure from the defined configuration
+        if (OPENFLEX_PARSE_HEADER) {
+           $this->header = fgetcsv($this->fp, $this->length, $this->delimiter);
+        } else {
+            $this->header = array_keys(OPENFLEX_CSV_STRUCTURE);
+        }
+
+    }
+    //--------------------------------------------------------------------
+    function __destruct()
+    {
+        if ($this->fp)
+        {
+            fclose($this->fp);
+        }
+    }
+    //--------------------------------------------------------------------
+    function get($max_lines = 0, $offset = 0)
+    {
+        //if $max_lines is set to 0, then get all the data
+
+        $data = array();
+
+        if ($max_lines > 0) {
+            $line_count = 0;
+        } else {
+            $line_count = -1; // so loop limit is ignored
+        }
+
+        // If $start is not 0, we run through the first rows before getting the interesting ones
+        if($offset) {
+            $current = 0;
+            while($current < $offset && ($row = fgetcsv($this->fp, $this->length, $this->delimiter)) !== FALSE) {
+                $current++;
+            }
+        }
+
+        while ($line_count < $max_lines && ($row = fgetcsv($this->fp, $this->length, $this->delimiter)) !== FALSE) {
+            if ($this->parse_header) {
+                foreach ($this->header as $i => $heading_i) {
+                    $row_new[$heading_i] = $row[$i];
+                }
+                $data[] = $row_new;
+            } else {
+                $data[] = $row;
+            }
+
+            if ($max_lines > 0) {
+                $line_count++;
+            }
+        }
+        return $data;
+    }
+
+    function countRows() {
+        $count = 0;
+        while($line = fgetcsv($this->fp, 10000, $this->delimiter) !== FALSE) {
+            $count++;
+        }
+        return $count;
+    }
+    //--------------------------------------------------------------------
+
+}
+?>

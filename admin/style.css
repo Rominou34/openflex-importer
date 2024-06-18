@@ -1,0 +1,63 @@
+#products-importer table {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+#products-importer table th,
+#products-importer table td {
+    border-bottom: 1px solid #aaa;
+    padding: 0.5em 1em;
+    text-align: center;
+}
+#products-importer table th {
+    border-top: 1px solid #aaa;
+    background-color: #e3e3e3;
+}
+#products-importer table th:first-child,
+#products-importer table td:first-child {
+    border-left: 1px solid #aaa;
+}
+#products-importer table th:last-child,
+#products-importer table td:last-child {
+    border-right: 1px solid #aaa;
+}
+#products-importer table tr:nth-child(2n) td {
+    background-color: white;
+}
+#products-importer table tr:nth-child(2n+1) td {
+    background-color: #f8f8fa;
+}
+#products-importer table tr.infos-line td {
+    line-height: 16px;
+    text-align: left;
+    background-color: #eee;
+}
+#products-importer .text-warning {
+    color: #dc8b00;
+}
+#products-importer .text-error {
+    color: #d43f3a;
+}
+#products-importer .text-success {
+    color: #85b655;
+}
+#products-importer .text-silver {
+    color: #B1B1B1;
+}
+#products-importer .bold {
+    font-weight: bold;
+}
+
+#products-importer .list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#products-importer .list-header .fields-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+#products-importer .list-header .fields-container select {
+    margin-left: 0.25rem;
+    margin-right: 1rem;
+}
