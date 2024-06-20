@@ -305,11 +305,11 @@ class Import {
                     if($result['status'] == "ok") {
                         $imported++;
                         // Import after-save
-                        if(!empty($product_data['after']) && !empty($result['id'])) {
+                        if(!empty($result['id'])) {
                             if($type == 'bike') {
-                                $this->persistBike($product_data['after'], $row_data, $result['id']);
+                                $this->persistBike($product_data['after'] ?? [], $row_data, $result['id']);
                             } else {
-                                $this->importProduct($product_data['after'], $row_data, $result['id']);
+                                $this->importProduct($product_data['after'] ?? [], $row_data, $result['id']);
                             }
                         }
                     } elseif($result['status'] == "ignored") {
@@ -810,6 +810,16 @@ class Import {
         $this->setPuissance($original_data, $product_id);
         $this->setKmGaranti($original_data, $product_id);
         $this->setPremiereMain($original_data, $product_id);
+        $this->setDateMec($original_data, $product_id);
+        $this->setFullSocieteAdresse($original_data, $product_id);
+        $this->setBikeBrand($original_data, $product_id);
+        $this->setBikeFuel($original_data, $product_id);
+        // @TODO - Faire fonctionner
+        $this->setBikeCategory($original_data, $product_id);
+        // @TODO - Faire fonctionner
+        $this->setBikeCity($original_data, $product_id);
+
+        $this->setGrimDate($product_id);
     }
 
     // Utility function that returns the correct product object instance
@@ -1287,39 +1297,45 @@ class Import {
     /**
      * Pour les champs "Date de mise en circulation"
      */
-    public static function parseDateMec($product_infos, $product_id, $value, $args, $original_data) {
-        if(!empty($value)) {
-            $date = DateTime::createFromFormat("d-m-Y", $value);
+    public static function setDateMec($original_data, $product_id) {
+        if(!empty($original_data['putIntoService'])) {
+            $date = new DateTime($original_data['putIntoService']);
             if($date) {
                 update_field("day", $date->format("d"), $product_id);
                 update_field("month", $date->format("m"), $product_id);
                 update_field("year", $date->format("Y"), $product_id);
             }
         }
-        return $product_infos;
     }
 
     /**
      * Génère l'adress complète du concessionnaire depuis les champs
      */
-    public static function getFullSocieteAdresse($product_infos, $product_id, $value, $args, $original_data) {
+    public static function setFullSocieteAdresse($original_data, $product_id) {
         // Génération adresse
-        $adresse = [];
-        if(!empty($original_data['AnnonceurSocieteAdresse'])) {
-            $adresse[] = $original_data['AnnonceurSocieteAdresse'];
+        $pos_infos = [];
+        if(!empty($original_data['physicalPresencePointOfSale'])) {
+            $pos_infos = $original_data['physicalPresencePointOfSale'];
+        } elseif(!empty($original_data['pointOfSale'])) {
+            $pos_infos = $original_data['physicalPresencePointOfSale'];
         }
-        if(!empty($original_data['AnnonceurSocieteAdresseSuite'])) {
-            $adresse[] = $original_data['AnnonceurSocieteAdresseSuite'];
+
+        if(empty($pos_infos)) {
+            return;
         }
-        $adresse = implode(", ", $adresse);
+
+        $adresse = null;
+        if(!empty($pos_infos['name'])) {
+            $adresse = $pos_infos['name'];
+        }
 
         // Génération ville
         $ville = [];
-        if(!empty($original_data['AnnonceurSocieteCodePostal'])) {
-            $ville[] = $original_data['AnnonceurSocieteCodePostal'];
+        if(!empty($pos_infos['zipCode'])) {
+            $ville[] = $pos_infos['zipCode'];
         }
-        if(!empty($original_data['AnnonceurSocieteVille'])) {
-            $ville[] = $original_data['AnnonceurSocieteVille'];
+        if(!empty($pos_infos['city'])) {
+            $ville[] = $pos_infos['city'];
         }
         $ville = implode(" ", $ville);
 
@@ -1332,22 +1348,27 @@ class Import {
         }
 
         $full_adresse = implode(", ", $full_adresse);
-        update_field("dealer_address", $full_adresse, $product_id);
-        return $product_infos;
+        if(!empty($full_adresse)) {
+            update_field("dealer_address", $full_adresse, $product_id);
+        }
     }
 
     /**
      * Parse la marque et l'enregistre dans la taxonomie correspondante
      */
-    public static function parseMarque($product_infos, $product_id, $value) {
+    public static function setBikeBrand($original_data, $product_id) {
+        if(empty($original_data['make'])) {
+            return;
+        }
+
         // On slugifie la catégorie pour retrouver la bonne taxonomie
-        $ref_categ = sanitize_title($value);
+        $ref_categ = sanitize_title($original_data['make']);
         $term = get_term_by('slug', $ref_categ, "moto_brand");
         if(!empty($term) && !empty($term->term_id)) {
             $terms = [(int)$term->term_id];
         } else {
             // Création de la marque si inexistante
-            $term = wp_insert_term($value, 'moto_brand', ['slug' => $ref_categ]);
+            $term = wp_insert_term($original_data['make'], 'moto_brand', ['slug' => $ref_categ]);
             if(!empty($term)) {
                 $terms = [(int)$term['term_id']];
             }
@@ -1355,43 +1376,57 @@ class Import {
         if(!empty($terms)) {
             wp_set_post_terms($product_id, $terms, "moto_brand");
         }
-        return $product_infos;
     }
 
     /**
      * Parse la catégorie et l'enregistre dans la taxonomie correspondante
+     * @TODO - Adapter pour OpenFlex
      */
-    public static function parseCategorie($product_infos, $product_id, $value) {
+    public static function setBikeCategory($original_data, $product_id) {
+        if(empty($original_data['category'])) {
+            return;
+        }
+
         // On slugifie la catégorie pour retrouver la bonne taxonomie
-        $ref_categ = sanitize_title($value);
+        $ref_categ = sanitize_title($original_data['category']);
         $term = get_term_by('slug', $ref_categ, "moto_category");
         if(!empty($term) && !empty($term->term_id)) {
             $terms = [(int)$term->term_id];
             wp_set_post_terms($product_id, $terms, "moto_category");
         }
-        return $product_infos;
     }
 
     /**
      * Parse le carburant et l'enregistre dans la taxonomie correspondante
      */
-    public static function parseCarburant($product_infos, $product_id, $value) {
+    public static function setBikeFuel($original_data, $product_id) {
+        if(empty($original_data['genericFuel'])) {
+            if(empty($original_data['fuel'])) {
+                return;
+            } else {
+                $original_data['genericFuel'] = $original_data['fuel'];
+            }
+        }
         // On slugifie la catégorie pour retrouver la bonne taxonomie
-        $ref_carburant = sanitize_title($value);
+        $ref_carburant = sanitize_title($original_data['genericFuel']);
         $term = get_term_by('slug', $ref_carburant, "moto_fuel");
         if(!empty($term) && !empty($term->term_id)) {
             $terms = [(int)$term->term_id];
             wp_set_post_terms($product_id, $terms, "moto_fuel");
         }
-        return $product_infos;
     }
 
     /**
      * Parse la ville et l'enregistre dans la taxonomie correspondante
+     * @TODO - Adapter pour OpenFlex
      */
-    public static function parseVille($product_infos, $product_id, $value) {
+    public static function setBikeCity($original_data, $product_id) {
+        if(empty($original_data['city'])) {
+            return;
+        }
+
         // On slugifie la catégorie pour retrouver la bonne taxonomie
-        $ref_ville = sanitize_title($value);
+        $ref_ville = sanitize_title($original_data['city']);
         if($ref_ville == "boe") {
         	$ref_ville = "agen";
         }
@@ -1401,13 +1436,11 @@ class Import {
             $terms = [(int)$term->term_id];
             wp_set_post_terms($product_id, $terms, "moto_city");
         }
-        return $product_infos;
     }
 
-    public static function setGrimDate($product_infos, $product_id, $value) {
+    public static function setGrimDate($product_id) {
         $now = new \DateTime("now");
         update_field("grim_date", $now->format('Y-m-d H:i:s'), $product_id);
-        return $product_infos;
     }
 
     /**
