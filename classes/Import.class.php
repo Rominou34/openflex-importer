@@ -2,6 +2,8 @@
 
 namespace OpenFlexImporter;
 
+use DateTime;
+
 class Import {
 
     const TABLE_NAME = "openflex_import";
@@ -116,6 +118,91 @@ class Import {
         }
     }
 
+    public function toArray() {
+        return [
+            'id' => $this->id,
+            'status' => $this->status,
+            'date_start' => $this->date_start,
+            'date_end' => $this->date_end,
+            'file_lines' => $this->file_lines,
+            'imported_lines' => $this->imported_lines,
+            'partial_lines' => $this->partial_lines,
+            'error_lines' => $this->error_lines,
+            'ignored_lines' => $this->ignored_lines
+        ];
+    }
+
+    /**
+     * Saves the import informations into the database
+     */
+    public function save() {
+        global $wpdb;
+        if($this->id) {
+            $wpdb->update(static::getTableName(), $this->toArray(), ['id' => $this->id]);
+        } else {
+            $wpdb->insert(static::getTableName(), $this->toArray());
+            $this->id = $wpdb->insert_id;
+        }
+    }
+
+    function basicWarning($message, $data) {
+        $warning = new ImportError($this->id, 'warning', json_encode(['message' => $message]), json_encode($data));
+        $warning->save();
+    }
+
+    /**
+     * Handles the minor exceptions (i.e. product description is empty)
+     * 
+     * 
+     * @param Throwable $error - The thrown error
+     * @param array $data - The original line data
+     */
+    function handleWarning($error, $data) {
+        $error_detail = [
+            'message' => $error->getMessage(),
+            'file' => $error->getFile(),
+            'line' => $error->getLine(),
+            'trace' => $error->getTraceAsString()
+        ];
+        $warning = new ImportError($this->id, 'warning', json_encode($error_detail), json_encode($data));
+        $warning->save();
+    }
+
+    /**
+     * Handles the line major exceptions, which do not create / update the product
+     * (i.e. product price is null or zero)
+     * 
+     * @param Throwable $error - The thrown error
+     * @param array $data - The original line data
+     */
+    function handleError($error, $data) {
+        $error_detail = [
+            'message' => $error->getMessage(),
+            'file' => $error->getFile(),
+            'line' => $error->getLine(),
+            'trace' => $error->getTraceAsString()
+        ];
+        $error = new ImportError($this->id, 'error', json_encode($error_detail), json_encode($data));
+        $error->save();
+    }
+
+    public static function getAll() {
+        global $wpdb;
+
+        return $wpdb->get_results("SELECT * FROM ".self::getTableName()." ORDER BY date_start DESC", \ARRAY_A);
+    }
+
+    public static function getById($id) {
+        global $wpdb;
+
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM ".self::getTableName()." WHERE id = %s", $id), \ARRAY_A);
+    }
+
+    /**
+     * Fonction statique permettant de démarrer l'import depuis un appel AJAX
+     * ou un script. On vérifie la présence d'un id pour savoir si on doit
+     * reprendre un import existant ou en créer un nouveau
+     */
     public static function startImport($request = []) {
         try {
             file_put_contents(plugin_dir_path(__FILE__)."ajax_calls.log", "Called now : ".date("Y-m-d H:i:s")."\n", FILE_APPEND);
@@ -206,7 +293,7 @@ class Import {
                 // @TODO - Rendre dynamique pour chaque produit
                 $type = 'bike';
 
-                $product_data = $this->mapData($row_data);
+                $product_data = $row_data;
 
                 // @TODO - Faire fonctionner pour les voitures
                 if($type == 'bike') {
@@ -296,53 +383,6 @@ class Import {
                 }
             }
         }
-    }
-
-    /**
-     * Maps the data from the CSV with the attributes of a Woocommerce product, following the given structure
-     */
-    private function mapData($data) {
-        $mapped_data = [
-            'regular' => [], // Import initial
-            'after' => [] // À importer après l'import initial (et donc après la création du produit)
-        ];
-        foreach($data as $field => $value) {
-            // If the column is not mapped we throw a warning
-            if(empty(OPENFLEX_CSV_STRUCTURE[$field]) && empty(OPENFLEX_CSV_STRUCTURE_AFTER[$field]) && OPENFLEX_WARN_UNMAPPED) {
-                $this->basicWarning("La colonne $field du CSV n'est pas mappée", $data);
-            } else {
-                if(!empty(OPENFLEX_CSV_STRUCTURE[$field])) {
-                    $attribute = OPENFLEX_CSV_STRUCTURE[$field];
-                    $mapped_data['regular'][$attribute] = $value;
-                }
-                if(!empty(OPENFLEX_CSV_STRUCTURE_AFTER[$field])) {
-                    $attribute = OPENFLEX_CSV_STRUCTURE_AFTER[$field];
-                    $mapped_data['after'][$attribute] = $value;
-                }
-            }
-        }
-        // We add the default values
-        foreach(OPENFLEX_DEFAULT_VALUES as $field => $value) {
-            $mapped_data['regular'][$field] = $value;
-        }
-        foreach(OPENFLEX_DEFAULT_VALUES_AFTER as $field => $value) {
-            $mapped_data['after'][$field] = $value;
-        }
-        if(!empty(static::DEFAULT_VALUES)) {
-            foreach(static::DEFAULT_VALUES as $field => $value) {
-                var_dump([$field => $value]);
-                $mapped_data['regular'][$field] = $value;
-            }
-        }
-        if(OPENFLEX_ACTION == "CREATE") {
-            $required_fields = $this->is_custom_type ? static::REQUIRED_POST_FIELD : static::REQUIRED_FIELDS;
-            foreach($required_fields as $required) {
-                if(empty($mapped_data['regular'][$required])) {
-                    throw new \Exception("Le champ $required est vide");
-                }
-            }
-        }
-        return $mapped_data;
     }
 
     /* 
@@ -765,16 +805,22 @@ class Import {
                 update_field($field, $original_data[$col], $product_id);
             }
         }
+
+        $this->setFinition($original_data, $product_id);
+        $this->setPuissance($original_data, $product_id);
+        $this->setKmGaranti($original_data, $product_id);
+        $this->setPremiereMain($original_data, $product_id);
     }
 
     // Utility function that returns the correct product object instance
+    // @TODO - Supprimer
     private function getProductObjectType($type) {
         // Get an instance of the WC_Product object (depending on his type)
-        if(isset($args['type']) && $args['type'] === 'variable'){
+        if(isset($type) && $type === 'variable'){
             $product = new \WC_Product_Variable();
-        } elseif(isset($args['type']) && $args['type'] === 'grouped'){
+        } elseif(isset($type) && $type === 'grouped'){
             $product = new \WC_Product_Grouped();
-        } elseif(isset($args['type']) && $args['type'] === 'external'){
+        } elseif(isset($type) && $type === 'external'){
             $product = new \WC_Product_External();
         } else {
             $product = new \WC_Product_Simple(); // "simple" By default
@@ -789,48 +835,6 @@ class Import {
     /*
      * Complex import functions
      */
-    
-    // Utility function that prepare product attributes before saving
-    private function prepareProductAttributes($attributes) {
-        global $woocommerce;
-    
-        $data = array();
-        $position = 0;
-    
-        foreach($attributes as $taxonomy => $values){
-            if(!\taxonomy_exists($taxonomy))
-                continue;
-    
-            // Get an instance of the WC_Product_Attribute Object
-            $attribute = new \WC_Product_Attribute();
-    
-            $term_ids = array();
-    
-            // Loop through the term names
-            foreach($values['term_names'] as $term_name){
-                if(\term_exists($term_name, $taxonomy))
-                    // Get and set the term ID in the array from the term name
-                    $term_ids[] = \get_term_by('name', $term_name, $taxonomy)->term_id;
-                else
-                    continue;
-            }
-    
-            $taxonomy_id = \wc_attribute_taxonomy_id_by_name($taxonomy); // Get taxonomy ID
-    
-            $attribute->set_id($taxonomy_id);
-            $attribute->set_name($taxonomy);
-            $attribute->set_options($term_ids);
-            $attribute->set_position($position);
-            $attribute->set_visible($values['is_visible']);
-            $attribute->set_variation($values['for_variation']);
-    
-            $data[$taxonomy] = $attribute; // Set in an array
-    
-            $position++; // Increase position
-        }
-        return $data;
-    }
-
     private function importImage($product, $image_url) {
         $image_id = $this->importImageFromUrl($image_url, "product_image");
         $product->set_image_id($image_id);
@@ -1069,86 +1073,6 @@ class Import {
         //$product->set_backorders(isset($args['backorders']) ? $args['backorders'] : 'no'); // 'yes', 'no' or 'notify'
     }
 
-    public function toArray() {
-        return [
-            'id' => $this->id,
-            'status' => $this->status,
-            'date_start' => $this->date_start,
-            'date_end' => $this->date_end,
-            'file_lines' => $this->file_lines,
-            'imported_lines' => $this->imported_lines,
-            'partial_lines' => $this->partial_lines,
-            'error_lines' => $this->error_lines,
-            'ignored_lines' => $this->ignored_lines
-        ];
-    }
-
-    /**
-     * Saves the import informations into the database
-     */
-    public function save() {
-        global $wpdb;
-        if($this->id) {
-            $wpdb->update(static::getTableName(), $this->toArray(), ['id' => $this->id]);
-        } else {
-            $wpdb->insert(static::getTableName(), $this->toArray());
-            $this->id = $wpdb->insert_id;
-        }
-    }
-
-    function basicWarning($message, $data) {
-        $warning = new ImportError($this->id, 'warning', json_encode(['message' => $message]), json_encode($data));
-        $warning->save();
-    }
-
-    /**
-     * Handles the minor exceptions (i.e. product description is empty)
-     * 
-     * 
-     * @param Throwable $error - The thrown error
-     * @param array $data - The original line data
-     */
-    function handleWarning($error, $data) {
-        $error_detail = [
-            'message' => $error->getMessage(),
-            'file' => $error->getFile(),
-            'line' => $error->getLine(),
-            'trace' => $error->getTraceAsString()
-        ];
-        $warning = new ImportError($this->id, 'warning', json_encode($error_detail), json_encode($data));
-        $warning->save();
-    }
-
-    /**
-     * Handles the line major exceptions, which do not create / update the product
-     * (i.e. product price is null or zero)
-     * 
-     * @param Throwable $error - The thrown error
-     * @param array $data - The original line data
-     */
-    function handleError($error, $data) {
-        $error_detail = [
-            'message' => $error->getMessage(),
-            'file' => $error->getFile(),
-            'line' => $error->getLine(),
-            'trace' => $error->getTraceAsString()
-        ];
-        $error = new ImportError($this->id, 'error', json_encode($error_detail), json_encode($data));
-        $error->save();
-    }
-
-    public static function getAll() {
-        global $wpdb;
-
-        return $wpdb->get_results("SELECT * FROM ".self::getTableName()." ORDER BY date_start DESC", \ARRAY_A);
-    }
-
-    public static function getById($id) {
-        global $wpdb;
-
-        return $wpdb->get_row($wpdb->prepare("SELECT * FROM ".self::getTableName()." WHERE id = %s", $id), \ARRAY_A);
-    }
-
     private static function beforeImport($import = null) {}
     private static function afterImport($import = null) {
         $ftp_config = OPENFLEX_FTP_CONFIGS[$import->use_config] ?? [];
@@ -1287,9 +1211,13 @@ class Import {
         if(!empty($original_data['make'])) {
             $post_title[] = $original_data['make'];
         }
-        if(!empty($original_data['version'])) {
-            $post_title[] = $original_data['version'];
-        } elseif(!empty($original_data['model'])) {
+        // Pas de finition dans le nom du véhicule
+        // if(!empty($original_data['version'])) {
+        //     $post_title[] = $original_data['version'];
+        // } elseif(!empty($original_data['model'])) {
+        //     $post_title[] = $original_data['model'];
+        // }
+        if(!empty($original_data['model'])) {
             $post_title[] = $original_data['model'];
         }
         return implode(" ", $post_title);
@@ -1298,36 +1226,34 @@ class Import {
     /**
      * Génère le nom de la finition en combinant la marque, le modèle et l'année de sortie
      */
-    public static function getFinition($product_infos, $product_id, $value, $args, $original_data) {
+    public static function setFinition($original_data, $product_id) {
         $nom_moto = [];
-        if(!empty($original_data['VehiculeModele'])) {
-            $nom_moto[] = $original_data['VehiculeModele'];
-        }
-        if(!empty($original_data['VehiculeVersion'])) {
-            $nom_moto[] = $original_data['VehiculeVersion'];
+        if(!empty($original_data['version'])) {
+            $post_title[] = $original_data['version'];
+        } elseif(!empty($original_data['model'])) {
+            $post_title[] = $original_data['model'];
         }
 
         $finition = implode(" ", $nom_moto);
 
         // Ajout des infos complémentaires
-        if(!empty($original_data['VehiculeCouleurExterieure'])) {
-            $finition .= ", {$original_data['VehiculeCouleurExterieure']}";
+        if(!empty($original_data['externalColorWording'])) {
+            $finition .= ", {$original_data['externalColorWording']}";
         }
-        if(!empty($original_data['VehiculePuissanceReelle'])) {
-            $finition .= ", {$original_data['VehiculePuissanceReelle']} cv";
+        if(!empty($original_data['horsepower'])) {
+            $finition .= ", {$original_data['horsepower']} cv";
         }
 
         update_field("finishes", $finition, $product_id);
-        return $product_infos;
     }
 
     /**
      * Parse la puissance pour voir si la moto est éligible au permis A2
      */
-    public static function parsePuissance($product_infos, $product_id, $value, $args, $original_data) {
+    public static function setPuissance($original_data, $product_id) {
         // Si puissance < 47.5 chevaux, on ajoute l'équipement "Permis A2"
-        if(!empty($original_data['VehiculePuissanceReelle'])) {
-            $puissance = (float)$original_data['VehiculePuissanceReelle'];
+        if(!empty($original_data['horsepower'])) {
+            $puissance = (float)$original_data['horsepower'];
             if($puissance <= 47.5) {
                 $term = get_term_by('slug', 'permis-a2', "equipment_moto");
                 if(!empty($term) && !empty($term->term_id)) {
@@ -1337,28 +1263,25 @@ class Import {
             }
         }
 
-        update_field("din_power", $original_data['VehiculePuissanceReelle'], $product_id);
-        return $product_infos;
+        update_field("din_power", $original_data['horsepower'], $product_id);
     }
 
     /**
      * Pour le champ ACF "Kilométrage garanti"
      */
-    public static function parseKmGaranti($product_infos, $product_id, $value, $args, $original_data) {
-        if(!empty($original_data['VehiculeKmGaranti']) && $original_data['VehiculeKmGaranti'] == "Garanti") {
+    public static function setKmGaranti($original_data, $product_id) {
+        if(!empty($original_data['guaranteedMileage']) && filter_var($original_data['guaranteedMileage'], FILTER_VALIDATE_BOOLEAN)) {
             update_field("km_garanti", true, $product_id);
         }
-        return $product_infos;
     }
 
     /**
      * Pour le champ ACF "Première main"
      */
-    public static function parsePremiereMain($product_infos, $product_id, $value, $args, $original_data) {
-        if(!empty($original_data['VehiculePremiereMain']) && $original_data['VehiculePremiereMain'] == "VRAI") {
+    public static function setPremiereMain($original_data, $product_id) {
+        if(!empty($original_data['firstHand']) && filter_var($original_data['firstHand'], FILTER_VALIDATE_BOOLEAN)) {
             update_field("premiere_main", true, $product_id);
         }
-        return $product_infos;
     }
 
     /**
