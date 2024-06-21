@@ -423,6 +423,383 @@ class OpenFlexClient {
 }
 EOD;
 
+    const VEHICLE_DETAILS_EXAMPLE = <<<EOD
+    {
+    "car": {
+        "id": 199,
+        "entityId": 41,
+        "pointOfSale": {
+            "id": 54,
+            "name": "Point de vente 2 (François D.)",
+            "zipCode": "69003",
+            "city": "Lyon",
+            "longitude": null,
+            "latitude": null
+        },
+        "physicalPresencePointOfSale": {
+            "id": 53,
+            "name": "Point de vente 1 (François D.)",
+            "zipCode": "71100",
+            "city": "Chalon-sur-Saône",
+            "longitude": null,
+            "latitude": null
+        },
+        "physicalPresenceSite": null,
+        "publicationContact": null,
+        "configuration": 3,
+        "destination": 1,
+        "referential": 1,
+        "referentialCarId": "82825",
+        "typeId": "10",
+        "type": "Véhicule particulier",
+        "makeId": "16",
+        "make": "JAGUAR",
+        "modelGroupId": "2365",
+        "modelGroup": "X-TYPE",
+        "generation": "X-TYPE",
+        "modelId": "2365",
+        "model": "X-TYPE",
+        "trim": "Classique",
+        "version": "X-Type 2.0i V6",
+        "fuelId": "00100001",
+        "fuel": "Essence sans plomb",
+        "genericFuelId": 1,
+        "genericFuel": "Essence",
+        "transmissionTypeId": "00180001",
+        "transmissionType": "Boîte manuelle",
+        "genericTransmissionTypeId": 1,
+        "genericTransmissionType": "Boîte manuelle",
+        "bodyId": "00010060",
+        "body": "Berline",
+        "genericBodyId": 11,
+        "genericBody": "Berline",
+        "segmentationId": "00030005",
+        "segmentation": "Moyenne supérieure",
+        "driveTypeId": "00050001",
+        "driveType": "Traction avant",
+        "genericDriveTypeId": 1,
+        "genericDriveType": "2 roues motrices",
+        "emissionId": "00170007",
+        "emission": "G-Kat",
+        "seats": 5,
+        "gears": 5,
+        "doors": 4,
+        "valves": 4,
+        "torque": 196,
+        "displacement": 2099,
+        "cylinders": 6,
+        "cylindersTypeId": "00080002",
+        "cylindersType": "V",
+        "horsepower": 159,
+        "taxHorsepower": 10,
+        "kilowatt": 117,
+        "co2Emission": 219,
+        "wltpCo2EmissionMin": null,
+        "wltpCo2EmissionMax": null,
+        "realCo2Emission": 219,
+        "mixedConsumption": 9.2,
+        "urbanConsumption": 12.7,
+        "extraUrbanConsumption": 7.1,
+        "length": 4672,
+        "width": 2003,
+        "height": 1392,
+        "totalWeight": 2025,
+        "payload": 575,
+        "wheelbase": null,
+        "trailerLoadBraked": null,
+        "trailerLoadUnbraked": null,
+        "roofload": 75,
+        "energeticEfficiency": null,
+        "curbWeight": 1450,
+        "realCurbWeight": null,
+        "topSpeed": 210,
+        "acceleration": 9.4,
+        "trunkMinimumCapacity": 452,
+        "trunkMaximumCapacity": 0,
+        "modelCatalogBegin": "2002-02-01T01:00:00+01:00",
+        "modelCatalogEnd": "2005-08-01T02:00:00+02:00",
+        "catalogBeginPrice": "2002-02-01T01:00:00+01:00",
+        "catalogEndPrice": "2003-08-31T02:00:00+02:00",
+        "catalogExclVatPrice": 28595.32,
+        "catalogInclVatPrice": 34200,
+        "catalogTax": 19.6,
+        "catalogPriceOverloaded": false,
+        "frontTyreWidth": "205",
+        "frontTyreHeight": "55",
+        "frontTyreSpeedIndex": "R",
+        "frontTyreDiameter": "16",
+        "rearTyreWidth": "205",
+        "rearTyreHeight": "55",
+        "rearTyreSpeedIndex": "R",
+        "rearTyreDiameter": "16",
+        "internalColorCode": null,
+        "internalColorWording": "Noir",
+        "internalColorReference": "000000",
+        "externalColorCode": null,
+        "externalColorWording": "Bleu",
+        "externalColorReference": "007cad",
+        "putIntoService": "2002-03-19T01:00:00+01:00",
+        "mileage": 128597,
+        "mileageDate": "2021-06-05T01:04:33+02:00",
+        "guaranteedMileage": true,
+        "numberplate": "DC789AT",
+        "chassis": "SAJAA53S22YC32220",
+        "registration": "2019-12-04T01:00:00+01:00",
+        "registrationNumber": null,
+        "codeFactory": null,
+        "recoverableVat": 2,
+        "tcenum": "MDA17x2Hxxxx",
+        "cultureId": null,
+        "referentialPicture": "https://filerender-api.openflex-preprod.eu/files/images/CvgF3D6OQwoCk%2Btflg2aX3Zf4mzC1n7YqV2Pteut6zd6nWb_DFXWZWcSeoPfUCXXnczP06IA8eLnHuFddcEad89rgETGkwGiog%3D%3D",
+        "picture": null,
+        "damaged": false,
+        "firstHand": false,
+        "rolling": true,
+        "upToDateMaintenanceBook": true,
+        "purchaseSource": null,
+        "origin": 1,
+        "originValue": "Particulier",
+        "import": false,
+        "importCountryIso": null,
+        "depositSale": false,
+        "sellerBuyer": "François DE MONSABERT",
+        "forecastedMileage": null,
+        "forecastedDate": null,
+        "referenced": true,
+        "stockEntrance": "2021-06-05T01:04:39+02:00",
+        "internalNumber": "VOJAG6545",
+        "standingTimeAlert": false,
+        "automaticPriceUpdate": false,
+        "isExported": false,
+        "technicalControl": "2021-06-04T01:05:49+02:00",
+        "nextTechnicalControl": null,
+        "deliveryDate": null,
+        "ordered": null,
+        "warranty": "VO24",
+        "warrantyDuration": null,
+        "warrantyEnd": "2021-10-29T18:52:09+02:00",
+        "assignment": null,
+        "collaboratorAssignmentId": null,
+        "reconciliationStatus": null,
+        "price": 9500,
+        "privateExclVatPrice": 9500,
+        "privateInclVatPrice": 9500,
+        "professionalExclVatPrice": null,
+        "professionalInclVatPrice": null,
+        "equipments": [
+            {
+                "id": 11725,
+                "wording": "Pack vision",
+                "code": null,
+                "exclVatPrice": 1000,
+                "inclVatPrice": 1200,
+                "tax": 20,
+                "referentialId": null,
+                "serial": false,
+                "pack": true,
+                "custom": true,
+                "packElements": [
+                    {
+                        "id": 1668,
+                        "wording": "Feux LED AV/AR",
+                        "code": "",
+                        "updatedAt": "2021-06-04T15:38:34+02:00"
+                    },
+                    {
+                        "id": 1669,
+                        "wording": "Caméra infrarouge à vision nocturne",
+                        "code": "",
+                        "updatedAt": "2021-06-04T15:38:34+02:00"
+                    }
+                ],
+                "equipmentGroupings": [],
+                "updatedAt": "2023-05-04T15:31:15+02:00"
+            },
+            {
+                "id": 11722,
+                "wording": "Pack smoking",
+                "code": "",
+                "exclVatPrice": 400,
+                "inclVatPrice": 480,
+                "tax": 20,
+                "referentialId": "179d71e2b9d",
+                "serial": false,
+                "pack": true,
+                "custom": true,
+                "packElements": [
+                    {
+                        "id": 1665,
+                        "wording": "Allume cigare",
+                        "code": "",
+                        "updatedAt": "2021-06-04T15:04:05+02:00"
+                    },
+                    {
+                        "id": 1666,
+                        "wording": "Cendrier",
+                        "code": "",
+                        "updatedAt": "2021-06-04T15:04:05+02:00"
+                    },
+                    {
+                        "id": 1667,
+                        "wording": "Parfumeur d'ambiance",
+                        "code": "",
+                        "updatedAt": "2021-06-04T15:04:05+02:00"
+                    }
+                ],
+                "equipmentGroupings": [],
+                "updatedAt": "2023-05-04T15:31:15+02:00"
+            },
+            {
+                "id": 11723,
+                "wording": "Toit ouvrant panoramique",
+                "code": "ABCDEF",
+                "exclVatPrice": 500,
+                "inclVatPrice": 600,
+                "tax": 20,
+                "referentialId": "179d71ebcc1",
+                "serial": false,
+                "pack": false,
+                "custom": true,
+                "packElements": [],
+                "equipmentGroupings": [],
+                "updatedAt": "2023-05-04T15:31:15+02:00"
+            },
+            {
+                "id": 11724,
+                "wording": "Barres de toit",
+                "code": "BDT",
+                "exclVatPrice": null,
+                "inclVatPrice": null,
+                "tax": null,
+                "referentialId": "179d71f168d",
+                "serial": true,
+                "pack": false,
+                "custom": true,
+                "packElements": [],
+                "equipmentGroupings": [],
+                "updatedAt": "2021-06-04T15:04:05+02:00"
+            }
+        ],
+        "pictures": [
+            {
+                "pictureUrl": "https://filerender-api.openflex-preprod.eu/files/images/c3dGREFEbW93VjRWS2dVaL63nYj2qV75%2BDAqoBodQixUo7fs64m75Kg5J%2BDSgJUIPs98gD2JbQHK96dG9SmHiDXFF_BuwkxMDF6VjVncOOa3jvRZ/JAGUAR_X-TYPE_34_AVANT_GAUCHE.jpg",
+                "templateReferenceId": 1
+            },
+            {
+                "pictureUrl": "https://filerender-api.openflex-preprod.eu/files/images/c3dGREFEbW93VjRWS2dVaL63nYj2qV75%2BDAqoBodQixUo7fs64m75Kg5J%2BDSgJUIPs98gD2JbQHK96dG9SmHiDXFF_BuwkxMDF6VjVncOOe3jvRZ/JAGUAR_X-TYPE_PROFIL_GAUCHE.jpg",
+                "templateReferenceId": 2
+            },
+            {
+                "pictureUrl": "https://filerender-api.openflex-preprod.eu/files/images/c3dGREFEbW93VjRWS2dVaL63nYj2qV75%2BDAqoBodQixUo7fs64m75Kg5J%2BDSgJUIPs98gD2JbQHK96dG9SmHiDXFF_BuwkxMDF6VjVncOe%2B3jvRZ/JAGUAR_X-TYPE_34_ARRIERE_DROIT.jpg",
+                "templateReferenceId": 5
+            },
+            {
+                "pictureUrl": "https://filerender-api.openflex-preprod.eu/files/images/c3dGREFEbW93VjRWS2dVaL63nYj2qV75%2BDAqoBodQixUo7fs64m75Kg5J%2BDSgJUIPs98gD2JbQHK96dG9SmHiDXFF_BuwkxMDF6VjVncOe63jvRZ/JAGUAR_X-TYPE_PROFIL_DROIT.jpg",
+                "templateReferenceId": 6
+            },
+            {
+                "pictureUrl": "https://filerender-api.openflex-preprod.eu/files/images/c3dGREFEbW93VjRWS2dVaL63nYj2qV75%2BDAqoBodQixUo7fs64m75Kg5J%2BDSgJUIPs98gD2JbQHK96dG9SmHiDXFF_BuwkxMDF6VjVncOey3jvRZ/JAGUAR_X-TYPE_34_AVANT_DROIT.jpg",
+                "templateReferenceId": 7
+            },
+            {
+                "pictureUrl": "https://filerender-api.openflex-preprod.eu/files/images/c3dGREFEbW93VjRWS2dVaL63nYj2qV75%2BDAqoBodQixUo7fs64m75Kg5J%2BDSgJUIPs98gD2JbQHK96dG9SmHiDXFF_BuwkxMDF6VjVncOe23jvRZ/JAGUAR_X-TYPE_JANTE.jpg",
+                "templateReferenceId": 9
+            }
+        ],
+        "paintings": [
+            {
+                "id": 192,
+                "wording": "Peinture de série",
+                "code": null,
+                "exclVatPrice": 0,
+                "inclVatPrice": 0,
+                "tax": null,
+                "referentialId": " ",
+                "serial": true,
+                "custom": false,
+                "updatedAt": "2023-05-04T15:31:15+02:00"
+            }
+        ],
+        "saddleries": [
+            {
+                "id": 225,
+                "wording": "Sellerie de série",
+                "code": null,
+                "exclVatPrice": 0,
+                "inclVatPrice": 0,
+                "tax": null,
+                "referentialId": " ",
+                "leather": false,
+                "serial": true,
+                "custom": false,
+                "updatedAt": "2023-05-04T15:31:15+02:00"
+            }
+        ],
+        "serviceAgreements": [
+            {
+                "id": 82,
+                "wording": "ENTRETIEN 24",
+                "code": "",
+                "exclVatPrice": 800,
+                "inclVatPrice": 960,
+                "tax": 20,
+                "referentialId": "179d71f9989",
+                "serial": false,
+                "custom": true,
+                "updatedAt": "2023-05-04T15:31:15+02:00"
+            }
+        ],
+        "deliveryPack": null,
+        "accessories": [],
+        "services": [],
+        "status": {
+            "id": "347",
+            "code": "SAST",
+            "wording": "Stock de vente"
+        },
+        "referentialPollutionClassification": null,
+        "pollutionClassificationDesignation": null,
+        "pollutionClassificationValue": null,
+        "pollutionClassificationMedia": null,
+        "comment": null,
+        "eReserved": false,
+        "updatedAt": "2023-05-04T15:31:15+02:00",
+        "powertrainId": null,
+        "powertrain": null,
+        "numberOfBatteries": null,
+        "batteryTypeId": null,
+        "batteryType": null,
+        "batteryCapacityAh": null,
+        "batteryCapacityKwh": null,
+        "homeBatteryChargingTime": null,
+        "fastBatteryChargingTime": null,
+        "hybridizationTypeId": null,
+        "hybridizationType": null,
+        "autonomy": null,
+        "gasTypeId": null,
+        "gasType": null,
+        "electricConsumption": null,
+        "gasTankCapacity": null,
+        "gasTankCapacityUnit": null,
+        "gasUrbanConsumption": null,
+        "gasExtraUrbanConsumption": null,
+        "gasMixedConsumption": null,
+        "gasConsumptionUnit": null,
+        "federalMotorTransportAuthorityNumber": null,
+        "insurancePremiumIndex": null,
+        "trailerHitch": null,
+        "trailerHitchValue": null,
+        "bonusPrice": null,
+        "penaltyPrice": null,
+        "equipmentsPrice": 2280,
+        "saddleriesPrice": 0,
+        "paintingsPrice": 0,
+        "serviceAgreementsPrice": 960,
+        "damagesRepaired": null
+    }
+}
+EOD;
+
     // @TODO - Appel API pour récupérer le token
     function __construct() {
     }
@@ -440,6 +817,11 @@ EOD;
     // Fonctions pour les appels
     function sendRequest($url, $type = "POST") {
 
+    }
+
+    // Récupération des détail d'un véhicule
+    function getVehicleDetails($vehicleId) {
+        return json_decode(self::VEHICLE_DETAILS_EXAMPLE, true)['car'];
     }
 
 }

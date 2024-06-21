@@ -819,6 +819,7 @@ class Import {
         // @TODO - Faire fonctionner
         $this->setBikeCity($original_data, $product_id);
 
+        $this->importDetails($original_data, $product_id, 'bike');
         $this->setGrimDate($product_id);
     }
 
@@ -1444,7 +1445,70 @@ class Import {
     }
 
     /**
+     * Fonction utilisée pour faire un appel sur l'API GET details
+     * afin de récupérer des infos supplémentaires sur le véhicule
+     * à ajouter après l'import : photos, équipements
+     */
+    public function importDetails($original_data, $product_id, $type) {
+        if(empty($original_data['id'])) {
+            return;
+        }
+
+        $details = $this->importer->getVehicleDetails($original_data['id']);
+        var_dump($details);
+
+        if(empty($details)) {
+            return;
+        }
+
+        // Import des photos
+        // @TODO - Ajouter la photo principale ? Je suis pas sûr de l'utilité
+        // de referentialPicture, peut-être que c'est juste une photo de
+        // référence pour le modèle
+        if(!empty($details['pictures'])) {
+            $attachments = [];
+
+            foreach($details['pictures'] as $picture) {
+                if(empty($picture['pictureUrl'])) {
+                    continue;
+                }
+
+                $attachment_id = static::wp_insert_attachment_from_url($picture['pictureUrl'], $product_id);
+                if(!empty($attachment_id)) {
+                    $attachments[] = $attachment_id;
+                }
+            }
+
+            // Si au moins une image a pu être ajoutée dans la médiathèque, on l'ajoute à la galerie ACF
+            if(!empty($attachments)) {
+                update_field("images", $attachments, $product_id);
+            }
+        }
+
+        if($type == 'bike') {
+            $this->importBikeEquipments($details, $product_id);
+        } else {
+            $this->importCarEquipments($details, $product_id);
+        }
+    }
+
+    /**
+     * Importe les équipements motos
+     */
+    public function importBikeEquipments($details, $product_id) {
+        // @TODO
+    }
+
+    /**
+     * Importe les équipements voitures
+     */
+    public function importCarEquipments($details, $product_id) {
+        // @TODO
+    }
+
+    /**
      * Parse les photos (avec URL)
+     * @deprecated - Moved to importDetails
      */
     public static function parsePhotosUrl($product_infos, $product_id, $value) {
         // Désactivé car bouffe trop de perfs et inutile en local
