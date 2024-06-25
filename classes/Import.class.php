@@ -1497,6 +1497,19 @@ class Import {
      */
     public function importBikeEquipments($details, $product_id) {
         // @TODO
+        $terms_to_check = [
+            "/bluetooth/i" => "bluetooth",
+            "/shifter.*pro/i" => "shifter-pro",
+            "/(keyless|sans.*cle|sans.*clef)/i" => "demarrage-sans-cle",
+            "/poignee.*chauffante/i" => "poignees-chauffantes",
+            "/sellle.*chauffante/i" => "selle-chauffante",
+            "/feux.*route/i" => "feux-route",
+            "/kit.*surbaissement/i" => "kit-surbaissement",
+            "/appel.*urgence/i" => "appel-urgence",
+            "/teleservice/i" => "teleservice"
+        ];
+
+        $this->importEquipments($details, $product_id, $terms_to_check, "equipment_moto");
     }
 
     /**
@@ -1504,6 +1517,80 @@ class Import {
      */
     public function importCarEquipments($details, $product_id) {
         // @TODO
+        // @TODO
+        $terms_to_check = [];
+
+        $this->importEquipments($details, $product_id, $terms_to_check, "equipment");
+    }
+
+    /**
+     * Importe les équipements dans les 3 champs ACF pour les équipements
+     * de série, les options et les packs, et vérifie pour chaque champ si
+     * son libellé est dans les regex des champs avec icône.
+     * Si c'est le cas, l'équipement est ajouté au champ ACF identifié par
+     * le paramètre $acf_ref
+     */
+    public function importEquipments($details, $product_id, $terms_to_check, $acf_ref) {
+        if(empty($details['equipments'])) {
+            return;
+        }
+
+        $equip_serials = [];
+        $equip_packs = [];
+        $equip_options = [];
+        $terms = [];
+        foreach($details['equipments'] as $equip) {
+            $equip_title = $equip['wording'];
+
+            // Pour les packs, on ajoute la liste des équipements entre
+            // parenthèses dans le titre
+            if(!empty($equip['packElements'])) {
+                $packElements = [];
+                foreach($equip['packElements'] as $packElem) {
+                    if(!empty($packElem['wording'])) {
+                        $packElements[] = $packElem['wording'];
+                    }
+                }
+
+                if(!empty($packElements)) {
+                    $equip_title .= " (".implode(", ", $packElements).")";
+                }
+
+                $equip_packs[] = [
+                    'item' => $equip_title
+                ];
+            } else {
+                if(!empty($equip['serial']) && filter_var($equip['serial'], FILTER_VALIDATE_BOOLEAN)) {
+                    $equip_serials[] = [
+                        'item' => $equip_title
+                    ];
+                } else {
+                    $equip_options[] = [
+                        'item' => $equip_title
+                    ];
+                }
+            }
+
+            $equip_slug = sanitize_title($equip['wording']);
+
+            // On regarde si l'équipement fait partie de ceux affichés en icône
+            foreach($terms_to_check as $regex => $term_ref) {
+                if(preg_match($regex, $equip_slug)) {
+                    $term = get_term_by('slug', $term_ref, "equipment_moto");
+                    if(!empty($term) && !empty($term->term_id)) {
+                        $terms[] = (int)$term->term_id;
+                    }
+                }
+            }
+        }
+
+        update_field("equipments_serial", $equip_serials, $product_id);
+        update_field("equipments_options", $equip_options, $product_id);
+        update_field("equipments_packs", $equip_packs, $product_id);
+
+        if(!empty($terms)) {
+            wp_set_post_terms($product_id, $terms, $acf_ref, true);
+        }
     }
 
     /**
