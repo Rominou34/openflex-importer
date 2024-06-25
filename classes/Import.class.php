@@ -82,6 +82,10 @@ class Import {
     const STATUS_DONE = "done";
     const STATUS_FAILED = "failed";
 
+    // Tableau associatif stockant, pour les taxonomies des équipements,
+    // les id de chaque terme associé à sa référence
+    private $_taxonomy_terms = [];
+
     private static function getTableName() {
         global $wpdb;
         return $wpdb->prefix.static::TABLE_NAME;
@@ -1496,7 +1500,7 @@ class Import {
      * Importe les équipements motos
      */
     public function importBikeEquipments($details, $product_id) {
-        // @TODO
+        // @TODO - Équipements à identifier via Regex
         $terms_to_check = [
             "/bluetooth/i" => "bluetooth",
             "/shifter.*pro/i" => "shifter-pro",
@@ -1508,29 +1512,36 @@ class Import {
             "/appel.*urgence/i" => "appel-urgence",
             "/teleservice/i" => "teleservice"
         ];
+        // @TODO - Équipements à identifier via code
+        $terms_codes = [
+            "code_equipement" => "ref_icone"
+        ];
 
-        $this->importEquipments($details, $product_id, $terms_to_check, "equipment_moto");
+        $this->importEquipments($details, $product_id, $terms_to_check, $terms_codes, "equipment_moto");
     }
 
     /**
      * Importe les équipements voitures
      */
     public function importCarEquipments($details, $product_id) {
-        // @TODO
-        // @TODO
+        // @TODO - Équipements à identifier via Regex
         $terms_to_check = [];
+        // @TODO - Équipements à identifier via code
+        $terms_codes = [
+            "code_equipement" => "ref_icone"
+        ];
 
-        $this->importEquipments($details, $product_id, $terms_to_check, "equipment");
+        $this->importEquipments($details, $product_id, $terms_to_check, $terms_codes, "equipment");
     }
 
     /**
      * Importe les équipements dans les 3 champs ACF pour les équipements
      * de série, les options et les packs, et vérifie pour chaque champ si
      * son libellé est dans les regex des champs avec icône.
-     * Si c'est le cas, l'équipement est ajouté au champ ACF identifié par
-     * le paramètre $acf_ref
+     * Si c'est le cas, l'équipement est ajouté à la taxonomie identifiée par
+     * le paramètre $tax_ref
      */
-    public function importEquipments($details, $product_id, $terms_to_check, $acf_ref) {
+    public function importEquipments($details, $product_id, $terms_to_check, $terms_codes, $tax_ref) {
         if(empty($details['equipments'])) {
             return;
         }
@@ -1574,12 +1585,27 @@ class Import {
             $equip_slug = sanitize_title($equip['wording']);
 
             // On regarde si l'équipement fait partie de ceux affichés en icône
-            foreach($terms_to_check as $regex => $term_ref) {
-                if(preg_match($regex, $equip_slug)) {
-                    $term = get_term_by('slug', $term_ref, "equipment_moto");
-                    if(!empty($term) && !empty($term->term_id)) {
-                        $terms[] = (int)$term->term_id;
+            // Première vérification via le code de l'équipement
+            $term_ref = null;
+            if(!empty($equip['code'])) {
+                if(!empty($terms_codes[$equip['code']])) {
+                    $term_ref = $terms_codes[$equip['code']];
+                }
+            }
+
+            // Deuxième vérification via le libellé
+            if(empty($term_ref)) {
+                foreach($terms_to_check as $regex => $ref) {
+                    if(preg_match($regex, $equip_slug)) {
+                        $term_ref = $ref;
                     }
+                }
+            }
+
+            if(!empty($term_ref)) {
+                $term_id = $this->getTermId($term_ref, $tax_ref);
+                if(!empty($term_id)) {
+                    $terms[] = (int)$term_id;
                 }
             }
         }
@@ -1589,8 +1615,39 @@ class Import {
         update_field("equipments_packs", $equip_packs, $product_id);
 
         if(!empty($terms)) {
-            wp_set_post_terms($product_id, $terms, $acf_ref, true);
+            wp_set_post_terms($product_id, $terms, $tax_ref, true);
         }
+    }
+
+    /**
+     * Récupère l'id du terme de taxonomie identifié par le slug term_ref,
+     * pour la taxonomie tax_ref, et le met en cache afin d'éviter des doublons
+     * d'appels BDD pour le même terme
+     */
+    public function getTermId($term_ref, $tax_ref) {
+        // Vérification dans le cache
+        if(!empty($this->_taxonomy_terms)) {
+            if(!empty($this->_taxonomy_terms[$tax_ref])) {
+                if(!empty($this->_taxonomy_terms[$tax_ref][$term_ref])) {
+                    return $this->_taxonomy_terms[$tax_ref][$term_ref];
+                }
+            }
+        } else {
+            $this->_taxonomy_terms[$tax_ref] = [];
+        }
+
+        // Récupération depuis la bdd
+        $term = get_term_by('slug', $term_ref, $tax_ref);
+        if(!empty($term) && !empty($term->term_id)) {
+            // Mise en cache
+            if(empty($this->_taxonomy_terms[$tax_ref])) {
+                $this->_taxonomy_terms[$tax_ref] = [];
+            }
+            $this->_taxonomy_terms[$tax_ref][$term_ref] = $term->term_id;
+
+            return $term->term_id;
+        }
+        return null;
     }
 
     /**
