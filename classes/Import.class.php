@@ -1242,24 +1242,22 @@ class Import {
      * Génère le nom de la finition en combinant la marque, le modèle et l'année de sortie
      */
     public static function setFinition($original_data, $product_id) {
-        $nom_moto = [];
+        $finition = [];
         if(!empty($original_data['version'])) {
-            $post_title[] = $original_data['version'];
+            $finition[] = $original_data['version'];
         } elseif(!empty($original_data['model'])) {
-            $post_title[] = $original_data['model'];
+            $finition[] = $original_data['model'];
         }
-
-        $finition = implode(" ", $nom_moto);
 
         // Ajout des infos complémentaires
         if(!empty($original_data['externalColorWording'])) {
-            $finition .= ", {$original_data['externalColorWording']}";
+            $finition[] = "{$original_data['externalColorWording']}";
         }
         if(!empty($original_data['horsepower'])) {
-            $finition .= ", {$original_data['horsepower']} cv";
+            $finition[] = "{$original_data['horsepower']} cv";
         }
 
-        update_field("finishes", $finition, $product_id);
+        update_field("finishes", implode(", ", $finition), $product_id);
     }
 
     /**
